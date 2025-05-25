@@ -1,0 +1,426 @@
+import datetime
+import os
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+import uuid
+from openpyxl import Workbook, load_workbook
+
+# Constant for the Excel file that stores customer requests
+EXCEL_FILE = "customer_requests.xlsx"
+# Excel file to persist product stock information (use a raw string for the Windows path)
+PRODUCT_STOCK_EXCEL = r"yourstock file"
+
+def load_product_stock():
+    """
+    Loads the product stock from an Excel file.
+    The Excel file should have a header row: ProductID, Name, Price, Stock.
+    If the file does not exist, it creates one with default product details.
+    """
+    if os.path.exists(PRODUCT_STOCK_EXCEL):
+        wb = load_workbook(PRODUCT_STOCK_EXCEL)
+        ws = wb.active
+        products = {}
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            product_id, name, price, stock = row
+            # Convert price and stock to proper types; use default values if conversion fails.
+            try:
+                price = float(price)
+            except (TypeError, ValueError):
+                price = 0.0
+            try:
+                stock = int(stock)
+            except (TypeError, ValueError):
+                stock = 0
+            products[str(product_id)] = {"name": name, "price": price, "stock": stock}
+        return products
+    else:
+        # Create default Excel file with default product details
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Products"
+        ws.append(["ProductID", "Name", "Price", "Stock"])
+        default_products = [
+            ("101", "T-Shirt", 21.90, 10),
+            ("102", "Shirt", 12.99, 15),
+            ("103", "Pants", 35.99, 8),
+            ("104", "Socks", 4.00, 20)
+        ]
+        for prod in default_products:
+            ws.append(prod)
+        wb.save(PRODUCT_STOCK_EXCEL)
+        return load_product_stock()
+
+def save_product_stock(products):
+    """
+    Saves the product stock to the Excel file.
+    Updates the stock for each product.
+    Assumes:
+      - Column A: ProductID
+      - Column D: Stock
+    """
+    if not os.path.exists(PRODUCT_STOCK_EXCEL):
+        messagebox.showerror("Error", f"Product file '{PRODUCT_STOCK_EXCEL}' not found!")
+        return
+    wb = load_workbook(PRODUCT_STOCK_EXCEL)
+    ws = wb.active
+    for row in ws.iter_rows(min_row=2):
+        prod_id = str(row[0].value)
+        if prod_id in products:
+            row[3].value = products[prod_id]["stock"]
+    try:
+        wb.save(PRODUCT_STOCK_EXCEL)
+    except PermissionError:
+        messagebox.showerror(
+            "Permission Error", 
+            f"Could not save file '{PRODUCT_STOCK_EXCEL}'.\n"
+            "Please ensure the file is not open in another application and that you have write permissions."
+        )
+
+def calculate_gst(total):
+    cgst = total * 0.09  # 9% CGST
+    sgst = total * 0.09  # 9% SGST
+    grand_total = total + cgst + sgst
+    return cgst, sgst, grand_total
+
+def generate_bill_id():
+    return str(uuid.uuid4().int)[:13]  # Ensures a unique 10-digit ID
+
+def update_grand_total():
+    total = sum(price * qty for _, price, qty in items)
+    _, _, grand_total = calculate_gst(total)
+    total_label.config(text=f"Grand Total: ${grand_total:.2f}")
+
+def print_receipt(items, payment, payment_method, card_last4=None):
+    bill_id = generate_bill_id()
+    total = sum(price * qty for _, price, qty in items)
+    cgst, sgst, grand_total = calculate_gst(total)
+    
+    receipt = "*" * 40 + "\n"
+    receipt += "OMS ENTERPRICES".center(40) + "\n"
+    receipt += "location: mvm\ncontact: 011010101\nmail: oms@gmail.com\n"
+    receipt += "*" * 40 + "\n"
+    receipt += "Terminal#2\n"
+    receipt += datetime.datetime.now().strftime("%d-%m-%Y %I:%M%p") + "\n"
+    receipt += "-" * 40 + "\n"
+    receipt += f"{'S.No':<5}{'Qty':<5}{'Item':<15}{'Total':>10}\n"
+    receipt += "-" * 40 + "\n"
+    for idx, (item, price, qty) in enumerate(items, start=1):
+        receipt += f"{idx:<5}{qty:<5}{item:<15}${price * qty:>8.2f}\n"
+    receipt += "-" * 40 + "\n"
+    receipt += f"Subtotal       ${total:.2f}\n"
+    receipt += f"CGST (9%)      ${cgst:.2f}\n"
+    receipt += f"SGST (9%)      ${sgst:.2f}\n"
+    receipt += f"Grand Total    ${grand_total:.2f}\n"
+    
+    if payment_method == "cash":
+        change = payment - grand_total
+        receipt += f"CASH            ${payment:.2f}\n"
+        receipt += f"CHANGE          ${change:.2f}\n"
+    elif payment_method == "card" and card_last4:
+        receipt += f"Bank Card       **** **** **** {card_last4}\n"
+        receipt += "Approval #      123654\n"
+    
+    receipt += "\nBill ID: " + bill_id + "\n"
+    receipt += "*" * 10 + " THANK YOU! " + "*" * 10
+    messagebox.showinfo("Receipt", receipt)
+    reset()
+
+def show_cash_payment():
+    total = sum(price * qty for _, price, qty in items)
+    _, _, grand_total = calculate_gst(total)
+    while True:
+        try:
+            payment_input = simpledialog.askstring("Cash Payment", "Enter cash amount:")
+            payment = float(payment_input or "0")
+            if payment < grand_total:
+                messagebox.showerror("Error", "Amount is less than total. Please enter again.")
+            else:
+                break
+        except ValueError:
+            messagebox.showerror("Error", "Invalid amount. Please enter a valid number.")
+    print_receipt(items, payment, "cash")
+
+def show_payment_options():
+    payment_method = simpledialog.askstring("Payment Method", "Enter payment method (cash/card):")
+    if payment_method is None:
+        return
+    if payment_method.lower() == "cash":
+        show_cash_payment()
+    elif payment_method.lower() == "card":
+        card_last4 = simpledialog.askstring("Card Payment", "Enter last 4 digits of card:")
+        if card_last4 and len(card_last4) == 4 and card_last4.isdigit():
+            print_receipt(items, 0, "card", card_last4)
+        else:
+            messagebox.showerror("Error", "Invalid card details.")
+    else:
+        messagebox.showerror("Error", "Invalid payment method.")
+
+# -----------------------------
+# Customer Request Functions
+# -----------------------------
+
+def append_request_to_excel(customer_name, phone, product):
+    if not os.path.exists(EXCEL_FILE):
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "CustomerRequests"
+        ws.append(["Timestamp", "Customer Name", "Phone Number", "Requested Product"])
+    else:
+        wb = load_workbook(EXCEL_FILE)
+        ws = wb.active
+    timestamp = datetime.datetime.now().strftime("%d-%m-%Y %I:%M%p")
+    ws.append([timestamp, customer_name, phone, product])
+    wb.save(EXCEL_FILE)
+
+def load_customer_requests():
+    if not os.path.exists(EXCEL_FILE):
+        return ["No customer requests found."]
+    wb = load_workbook(EXCEL_FILE)
+    ws = wb.active
+    requests = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        timestamp, customer_name, phone, product = row
+        requests.append(f"{timestamp} | {customer_name} | {phone} | {product}")
+    if not requests:
+        requests = ["No customer requests found."]
+    return requests
+
+def handle_customer_request():
+    request_win = tk.Toplevel(root)
+    request_win.title("Customer Request")
+    request_win.geometry("400x300")
+    
+    tk.Label(request_win, text="Customer Name:", font=("Arial", 12)).pack(pady=(20, 5))
+    entry_name = tk.Entry(request_win, font=("Arial", 12))
+    entry_name.pack(pady=5, fill=tk.X, padx=20)
+    
+    tk.Label(request_win, text="Phone Number:", font=("Arial", 12)).pack(pady=(20, 5))
+    entry_phone = tk.Entry(request_win, font=("Arial", 12))
+    entry_phone.pack(pady=5, fill=tk.X, padx=20)
+    
+    tk.Label(request_win, text="Product Name:", font=("Arial", 12)).pack(pady=(20, 5))
+    entry_product = tk.Entry(request_win, font=("Arial", 12))
+    entry_product.pack(pady=5, fill=tk.X, padx=20)
+    
+    def submit_request(event=None):
+        customer_name = entry_name.get().strip()
+        phone = entry_phone.get().strip()
+        product = entry_product.get().strip()
+        if not customer_name or not phone or not product:
+            messagebox.showerror("Error", "All fields are required.")
+            return
+        append_request_to_excel(customer_name, phone, product)
+        request_win.destroy()
+    
+    entry_name.bind("<Return>", lambda event: entry_phone.focus_set())  
+    entry_phone.bind("<Return>", lambda event: entry_product.focus_set())  
+    entry_product.bind("<Return>", submit_request)
+    
+    tk.Button(request_win, text="Submit", font=("Arial", 12), command=submit_request).pack(pady=20)
+    entry_name.focus_set()
+
+def display_customer_requests():
+    requests = load_customer_requests()
+    req_window = tk.Toplevel(root)
+    req_window.title("Customer Requests")
+    req_window.geometry("600x400")
+    
+    listbox = tk.Listbox(req_window, font=("Consolas", 12))
+    listbox.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+    for req in requests:
+        listbox.insert(tk.END, req)
+
+# -----------------------------
+# Product and Billing Functions
+# -----------------------------
+
+def update_available_listbox():
+    """Update the available products listbox to show current stock."""
+    available_listbox.delete(0, tk.END)
+    for product_id, product in products.items():
+        available_listbox.insert(tk.END, f"{product_id} - {product['name']} - ${product['price']:.2f} | Stock: {product['stock']}")
+
+def add_product(event=None):
+    product_id = add_entry.get().strip()
+    if product_id in products:
+        product = products[product_id]
+        name, price, stock = product["name"], product["price"], product["stock"]
+        if stock <= 0:
+            messagebox.showerror("Error", "Out of stock!")
+            add_entry.delete(0, tk.END)
+            return
+        # Increase quantity if product already added in cart
+        for i, (item_name, item_price, qty) in enumerate(items):
+            if item_name == name:
+                items[i] = (item_name, item_price, qty + 1)
+                product["stock"] -= 1
+                save_product_stock(products)
+                update_entered_listbox()
+                update_grand_total()
+                update_available_listbox()
+                add_entry.delete(0, tk.END)
+                return
+        # Add new product if not already in cart
+        items.append((name, price, 1))
+        product["stock"] -= 1
+        save_product_stock(products)
+        update_entered_listbox()
+        update_grand_total()
+        update_available_listbox()
+    else:
+        messagebox.showerror("Error", "Invalid Product ID")
+    add_entry.delete(0, tk.END)
+
+def update_entered_listbox():
+    entered_listbox.delete(0, tk.END)
+    for idx, (item, price, qty) in enumerate(items, start=1):
+        entered_listbox.insert(tk.END, f"{idx:<5}{qty:<5}{item:<15}${price * qty:>8.2f}")
+
+def reset():
+    entered_listbox.delete(0, tk.END)
+    global items
+    items = []
+    update_grand_total()
+    update_available_listbox()
+
+# -----------------------------
+# New Functions: Change Price and Delete Item
+# -----------------------------
+
+def change_price():
+    selected = entered_listbox.curselection()
+    if not selected:
+        messagebox.showerror("Error", "No item selected to change price.")
+        return
+    idx = selected[0]
+    current_item = items[idx]  # Tuple: (name, price, qty)
+    new_price_str = simpledialog.askstring("Change Price", f"Enter new price for '{current_item[0]}':", initialvalue=str(current_item[1]))
+    if new_price_str is None:
+        return  # User cancelled
+    try:
+        new_price = float(new_price_str)
+        if new_price < 0:
+            messagebox.showerror("Error", "Price cannot be negative.")
+            return
+    except ValueError:
+        messagebox.showerror("Error", "Invalid price entered.")
+        return
+    # Update the item tuple with the new price
+    items[idx] = (current_item[0], new_price, current_item[2])
+    update_entered_listbox()
+    update_grand_total()
+
+def delete_selected_item(event=None):
+    """Delete one quantity of the selected item in the entered products list."""
+    selected_index = entered_listbox.curselection()
+    if not selected_index:
+        return  # No item selected
+    index = selected_index[0]
+    item_name, item_price, qty = items[index]
+    # Reduce quantity or remove the item completely
+    if qty > 1:
+        items[index] = (item_name, item_price, qty - 1)
+    else:
+        items.pop(index)
+    # Update stock for the product
+    for prod_id, product in products.items():
+        if product["name"] == item_name:
+            product["stock"] += 1
+            break
+    save_product_stock(products)
+    update_entered_listbox()
+    update_grand_total()
+    update_available_listbox()
+
+def navigate_listbox(direction):
+    """Navigate through the entered products using Up and Down arrow keys."""
+    current_selection = entered_listbox.curselection()
+    if current_selection:
+        index = current_selection[0] + direction
+        index = max(0, min(index, entered_listbox.size() - 1))
+    else:
+        index = 0 if direction > 0 else entered_listbox.size() - 1
+    entered_listbox.selection_clear(0, tk.END)
+    entered_listbox.selection_set(index)
+    entered_listbox.activate(index)
+
+# -----------------------------
+# Main Program Setup
+# -----------------------------
+
+products = load_product_stock()
+items = []
+
+root = tk.Tk()
+root.title("Billing Software")
+root.attributes('-fullscreen', True)
+
+# Top frame: Add Bar
+top_frame = tk.Frame(root)
+top_frame.pack(side=tk.TOP, fill=tk.X, padx=10, pady=5)
+
+add_entry = tk.Entry(top_frame, font=("Arial", 14))
+add_entry.pack(side=tk.LEFT, padx=(0, 10), fill=tk.X, expand=True)
+add_entry.bind("<Return>", add_product)
+
+add_btn = tk.Button(top_frame, text="Add", font=("Arial", 14), command=add_product)
+add_btn.pack(side=tk.LEFT)
+
+# New Buttons: Change Price and Delete
+change_price_btn = tk.Button(top_frame, text="Change Price", font=("Arial", 14), command=change_price)
+change_price_btn.pack(side=tk.LEFT, padx=(10, 0))
+
+delete_btn = tk.Button(top_frame, text="Del", font=("Arial", 14), command=delete_selected_item)
+delete_btn.pack(side=tk.LEFT, padx=(10, 0))
+
+# Main frame: Two columns
+main_frame = tk.Frame(root)
+main_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+# Left panel: Entered Products
+left_frame = tk.Frame(main_frame, bd=2, relief=tk.GROOVE)
+left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0,5))
+
+left_label = tk.Label(left_frame, text="Entered Products", font=("Arial", 12, "bold"))
+left_label.pack(side=tk.TOP, fill=tk.X)
+
+entered_listbox = tk.Listbox(left_frame, font=("Consolas", 12))
+entered_listbox.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+# Bind arrow keys and Delete key to the entered products listbox
+entered_listbox.bind("<Delete>", delete_selected_item)
+entered_listbox.bind("<Up>", lambda e: navigate_listbox(-1))
+entered_listbox.bind("<Down>", lambda e: navigate_listbox(1))
+
+# Right panel: Available Products
+right_frame = tk.Frame(main_frame, bd=2, relief=tk.GROOVE)
+right_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5,0))
+
+right_label = tk.Label(right_frame, text="Available Products", font=("Arial", 12, "bold"))
+right_label.pack(side=tk.TOP, fill=tk.X)
+
+available_listbox = tk.Listbox(right_frame, font=("Consolas", 12))
+available_listbox.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+update_available_listbox()
+
+# Taskbar: Bottom area
+taskbar = tk.Frame(root, height=60, bg="gray")
+taskbar.pack(side=tk.BOTTOM, fill=tk.X)
+
+total_label = tk.Label(taskbar, text="Grand Total: $0.00", font=("Arial", 14), fg="white", bg="gray")
+total_label.pack(side=tk.LEFT, padx=10)
+
+btn_request = tk.Button(taskbar, text="Request", font=("Arial", 14), command=handle_customer_request)
+btn_request.pack(side=tk.LEFT, padx=10)
+
+btn_display_requests = tk.Button(taskbar, text="Customer Request", font=("Arial", 14), command=display_customer_requests)
+btn_display_requests.pack(side=tk.LEFT, padx=10)
+
+btn_done = tk.Button(taskbar, text="Finish Billing", font=("Arial", 14), command=show_payment_options)
+btn_done.pack(side=tk.RIGHT, padx=10)
+
+root.bind("<F2>", lambda e: show_payment_options())
+root.bind("<Control-Return>", lambda e: show_cash_payment())
+root.bind("<Control-Shift-R>", lambda e: handle_customer_request())
+root.bind("<Escape>", lambda e: root.destroy())
+
+root.mainloop()
