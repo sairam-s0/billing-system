@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>BillingApp</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="container">
@@ -11,17 +12,51 @@
     <aside class="sidebar">
       <h2>🧾 BillingApp</h2>
       <ul>
-        <li class="active" onclick="showPage('billing')">Dashboard</li>
+        <li class="active" onclick="showPage('dashboard')">Dashboard</li>
+        <li onclick="showPage('billing')">Billing</li>
         <li onclick="showPage('invoices')">Invoices</li>
-        <li>Clients</li>
-        <li>Settings</li>
       </ul>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Billing Page -->
-      <div id="billingPage">
+
+      <!-- 🧠 Dashboard -->
+      <div id="dashboardSection">
+        <h2>Dashboard Analytics</h2>
+        <div class="dashboard-grid">
+          <div class="card">
+            <h3>Yesterday Sales</h3>
+            <p id="yesterdaySales">₹0</p>
+          </div>
+          <div class="card">
+            <h3>Top Product</h3>
+            <p id="topProduct">-</p>
+          </div>
+          <div class="card circle">
+            <svg width="100" height="100">
+              <circle cx="50" cy="50" r="45" stroke="#eee" stroke-width="10" fill="none" />
+              <circle id="profitCircle" cx="50" cy="50" r="45" stroke="#6b8e23" stroke-width="10" fill="none"
+                stroke-dasharray="282.6" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 50 50)" />
+              <text id="profitAmount" x="50%" y="55%" text-anchor="middle" font-size="16" fill="#333">₹0</text>
+            </svg>
+            <p>Profit</p>
+          </div>
+        </div>
+
+        <div>
+          <h3>Top Selling Products</h3>
+          <ul id="topProductsList"></ul>
+        </div>
+
+        <div>
+          <h3>Sales Trend</h3>
+          <canvas id="salesChart" width="400" height="150"></canvas>
+        </div>
+      </div>
+
+      <!-- 💳 Billing Section -->
+      <div id="billingSection" style="display: none;">
         <header class="top-bar">
           <input type="text" id="searchBar" placeholder="Search product..." />
         </header>
@@ -79,15 +114,7 @@
         </section>
       </div>
 
-      <!-- Bill Summary (after billing) -->
-      <div id="billSummaryPage" style="display: none;">
-        <h2>Invoice Summary</h2>
-        <div id="summaryContent"></div>
-        <button onclick="window.print()">🖨️ Print</button>
-        <button onclick="showPage('billing')">🔙 Back to Billing</button>
-      </div>
-
-      <!-- Invoices Page -->
+      <!-- 📃 Invoices -->
       <div id="invoicesPage" style="display: none;">
         <h2>Past Invoices</h2>
         <input type="text" id="invoiceSearch" placeholder="Search Invoice ID..." />
@@ -104,6 +131,15 @@
           <tbody id="pastInvoices"></tbody>
         </table>
       </div>
+
+      <!-- ✅ Summary after Billing -->
+      <div id="billSummaryPage" style="display: none;">
+        <h2>Invoice Summary</h2>
+        <div id="summaryContent"></div>
+        <button onclick="window.print()">🖨️ Print</button>
+        <button onclick="showPage('billing')">🔙 Back to Billing</button>
+      </div>
+
     </main>
   </div>
   <script src="main.js"></script>

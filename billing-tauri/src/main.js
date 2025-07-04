@@ -1,3 +1,4 @@
+// ======= Products List =======
 const products = [
   { id: 1, name: "Pen", price: 10 },
   { id: 2, name: "Notebook", price: 40 },
@@ -10,6 +11,7 @@ let cart = {};
 let invoiceHistory = [];
 let invoiceCounter = 1001;
 
+// ======= Render Products =======
 function renderProducts(filtered = products) {
   const productList = document.getElementById("productList");
   productList.innerHTML = "";
@@ -46,6 +48,7 @@ function editPrice(id) {
   }
 }
 
+// ======= Invoice Rendering =======
 function renderInvoice() {
   const invoiceBody = document.getElementById("invoiceBody");
   invoiceBody.innerHTML = "";
@@ -90,6 +93,7 @@ function decreaseQty(id) {
   renderInvoice();
 }
 
+// ======= Search & Filters =======
 document.getElementById("searchBar").addEventListener("input", e => {
   const val = e.target.value.toLowerCase();
   const filtered = products.filter(p => p.name.toLowerCase().includes(val));
@@ -101,6 +105,7 @@ document.getElementById("invoiceSearch").addEventListener("input", e => {
   renderInvoiceList(query);
 });
 
+// ======= Finish Billing =======
 document.getElementById("finishBtn").addEventListener("click", () => {
   const subtotal = parseInt(document.getElementById("subtotal").textContent.replace("₹", ""));
   const gst = parseInt(document.getElementById("gst").textContent.replace("₹", ""));
@@ -139,27 +144,29 @@ document.getElementById("finishBtn").addEventListener("click", () => {
     mode: paymentMode,
     customer: name || "N/A",
     phone: phone || "N/A",
-    items: Object.values(cart)
+    items: Object.values(cart),
+    profit: Math.round(subtotal * 0.2) // assume 20% margin
   };
 
   invoiceHistory.push(invoiceData);
   cart = {};
   renderInvoice();
 
-  // Clear form
   document.getElementById("paymentMode").value = "";
   document.getElementById("amountPaid").value = "";
   document.getElementById("customerName").value = "";
   document.getElementById("customerPhone").value = "";
 
-  // Show bill summary
   showBillSummary(invoiceData);
   renderInvoiceList();
+  updateDashboard();
 });
 
+// ======= Bill Summary Viewer =======
 function showBillSummary(invoice) {
-  document.getElementById("billingPage").style.display = "none";
-  document.getElementById("invoicesPage").style.display = "none";
+  showPage(null);
+  document.getElementById("dashboardSection").style.display = "none";
+  document.getElementById("billingSection").style.display = "none";
   document.getElementById("billSummaryPage").style.display = "block";
 
   const summary = document.getElementById("summaryContent");
@@ -188,21 +195,28 @@ function showBillSummary(invoice) {
   `;
 }
 
+// ======= Page Switching =======
 function showPage(page) {
+  const sections = ["dashboardSection", "billingSection", "invoicesPage", "billSummaryPage"];
+  sections.forEach(sec => document.getElementById(sec).style.display = "none");
+
   document.querySelectorAll("aside li").forEach(li => li.classList.remove("active"));
-  if (page === "billing") {
+
+  if (page === "dashboard") {
+    document.getElementById("dashboardSection").style.display = "block";
     document.querySelector("aside li:nth-child(1)").classList.add("active");
-  } else if (page === "invoices") {
+    updateDashboard();
+  } else if (page === "billing") {
+    document.getElementById("billingSection").style.display = "block";
     document.querySelector("aside li:nth-child(2)").classList.add("active");
+  } else if (page === "invoices") {
+    document.getElementById("invoicesPage").style.display = "block";
+    document.querySelector("aside li:nth-child(3)").classList.add("active");
+    renderInvoiceList();
   }
-
-  document.getElementById("billingPage").style.display = page === "billing" ? "block" : "none";
-  document.getElementById("billSummaryPage").style.display = "none";
-  document.getElementById("invoicesPage").style.display = page === "invoices" ? "block" : "none";
-
-  if (page === "invoices") renderInvoiceList();
 }
 
+// ======= Invoices List =======
 function renderInvoiceList(filter = "") {
   const tbody = document.getElementById("pastInvoices");
   tbody.innerHTML = "";
@@ -221,6 +235,58 @@ function renderInvoiceList(filter = "") {
     });
 }
 
-// Initialize
+// ======= Dashboard Update =======
+function updateDashboard() {
+  const totalSales = invoiceHistory.reduce((acc, inv) => acc + parseInt(inv.total.replace("₹", "")), 0);
+  const yesterdaySales = invoiceHistory.length > 0 ? invoiceHistory[invoiceHistory.length - 1].total : "₹0";
+  document.getElementById("yesterdaySales").textContent = yesterdaySales;
+
+  // Most sold product
+  const productCount = {};
+  invoiceHistory.forEach(inv => {
+    inv.items.forEach(item => {
+      if (!productCount[item.name]) productCount[item.name] = 0;
+      productCount[item.name] += item.qty;
+    });
+  });
+  const sorted = Object.entries(productCount).sort((a, b) => b[1] - a[1]);
+  document.getElementById("topProduct").textContent = sorted.length > 0 ? sorted[0][0] : "-";
+
+  const topList = document.getElementById("topProductsList");
+  topList.innerHTML = sorted.map(p => `<li>${p[0]} — ${p[1]} sold</li>`).join("");
+
+  const totalProfit = invoiceHistory.reduce((acc, inv) => acc + (inv.profit || 0), 0);
+  document.getElementById("profitAmount").textContent = `₹${totalProfit}`;
+  document.getElementById("profitCircle").style.strokeDashoffset = 282.6 - (282.6 * totalProfit / 1000);
+
+  const ctx = document.getElementById("salesChart").getContext("2d");
+  if (window.salesChartInstance) window.salesChartInstance.destroy();
+  window.salesChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: invoiceHistory.map(i => i.id),
+      datasets: [{
+        label: 'Sales ₹',
+        data: invoiceHistory.map(i => parseInt(i.total.replace("₹", ""))),
+        borderColor: '#6b8e23',
+        tension: 0.3,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { display: false },
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ======= Initialize =======
 renderProducts();
 renderInvoice();
+showPage("dashboard");
