@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Modern Billing</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>BillingApp</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
@@ -11,57 +11,101 @@
     <aside class="sidebar">
       <h2>🧾 BillingApp</h2>
       <ul>
-        <li class="active">Dashboard</li>
-        <li>Invoices</li>
+        <li class="active" onclick="showPage('billing')">Dashboard</li>
+        <li onclick="showPage('invoices')">Invoices</li>
         <li>Clients</li>
         <li>Settings</li>
       </ul>
     </aside>
 
-    <!-- Main -->
+    <!-- Main Content -->
     <main class="main-content">
-      <header class="top-bar">
-        <input type="text" id="searchBar" placeholder="Search product...">
-      </header>
+      <!-- Billing Page -->
+      <div id="billingPage">
+        <header class="top-bar">
+          <input type="text" id="searchBar" placeholder="Search product..." />
+        </header>
 
-      <section class="product-section">
-        <h3>Product List</h3>
-        <div class="product-grid" id="productList"></div>
-      </section>
+        <section class="product-section">
+          <h3>Product List</h3>
+          <div class="product-grid" id="productList"></div>
+        </section>
 
-      <section class="invoice-card" id="invoiceCard">
-        <h3>Invoice Summary</h3>
+        <section class="invoice-card" id="invoiceCard">
+          <h3>Invoice Summary</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="invoiceBody"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3">Subtotal</td>
+                <td colspan="2" id="subtotal">₹0</td>
+              </tr>
+              <tr>
+                <td colspan="3">GST (18%)</td>
+                <td colspan="2" id="gst">₹0</td>
+              </tr>
+              <tr class="total-row">
+                <td colspan="3"><strong>Total</strong></td>
+                <td colspan="2" id="total"><strong>₹0</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div class="customer-details">
+            <input type="text" id="customerName" placeholder="Customer Name (optional)">
+            <input type="text" id="customerPhone" placeholder="Phone Number (optional)">
+          </div>
+
+          <div class="payment-section">
+            <select id="paymentMode">
+              <option value="">Select Payment Mode</option>
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="UPI">UPI</option>
+            </select>
+            <input type="number" id="amountPaid" placeholder="Amount Paid" />
+          </div>
+          <p id="paymentMsg" class="payment-msg"></p>
+          <button id="finishBtn">Finish Billing</button>
+        </section>
+      </div>
+
+      <!-- Bill Summary (after billing) -->
+      <div id="billSummaryPage" style="display: none;">
+        <h2>Invoice Summary</h2>
+        <div id="summaryContent"></div>
+        <button onclick="window.print()">🖨️ Print</button>
+        <button onclick="showPage('billing')">🔙 Back to Billing</button>
+      </div>
+
+      <!-- Invoices Page -->
+      <div id="invoicesPage" style="display: none;">
+        <h2>Past Invoices</h2>
+        <input type="text" id="invoiceSearch" placeholder="Search Invoice ID..." />
         <table>
           <thead>
             <tr>
-              <th>Product</th>
-              <th>Qty</th>
-              <th>Price</th>
+              <th>Invoice ID</th>
+              <th>Date</th>
+              <th>Customer</th>
               <th>Total</th>
-              <th>Actions</th>
+              <th>Mode</th>
             </tr>
           </thead>
-          <tbody id="invoiceBody"></tbody>
-          <tfoot>
-            <tr>
-              <td colspan="3">Subtotal</td>
-              <td colspan="2" id="subtotal">₹0</td>
-            </tr>
-            <tr>
-              <td colspan="3">GST (18%)</td>
-              <td colspan="2" id="gst">₹0</td>
-            </tr>
-            <tr class="total-row">
-              <td colspan="3"><strong>Total</strong></td>
-              <td colspan="2" id="total"><strong>₹0</strong></td>
-            </tr>
-          </tfoot>
+          <tbody id="pastInvoices"></tbody>
         </table>
-        <button id="finishBtn">Finish Billing</button>
-      </section>
+      </div>
     </main>
   </div>
-
   <script src="main.js"></script>
 </body>
 </html>

@@ -160,3 +160,81 @@ body {
 .invoice-card button:hover {
   background-color: #059669;
 }
+.payment-section {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.payment-section select,
+.payment-section input {
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.payment-msg {
+  margin-top: 10px;
+  font-weight: bold;
+  color: #d97706;
+}
+
+#invoicesPage table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+#invoicesPage th, #invoicesPage td {
+  padding: 12px;
+  border: 1px solid #ddd;
+}
+
+.sidebar li {
+  cursor: pointer;
+}
+
+.sidebar li.active {
+  background-color: #6b8e23;
+  font-weight: bold;
+}
+.customer-details {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.customer-details input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+#billSummaryPage {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+#billSummaryPage h2 {
+  margin-bottom: 15px;
+}
+
+#billSummaryPage table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+#billSummaryPage th, #billSummaryPage td {
+  padding: 8px;
+  border: 1px solid #ddd;
+}
+
+#invoiceSearch {
+  margin-bottom: 10px;
+  padding: 10px;
+  width: 300px;
+}
