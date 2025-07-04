@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Modern Billing</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h2>🧾 BillingApp</h2>
+      <ul>
+        <li class="active">Dashboard</li>
+        <li>Invoices</li>
+        <li>Clients</li>
+        <li>Settings</li>
+      </ul>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+      <header class="top-bar">
+        <input type="text" id="searchBar" placeholder="Search product...">
+      </header>
+
+      <section class="product-section">
+        <h3>Product List</h3>
+        <div class="product-grid" id="productList"></div>
+      </section>
+
+      <section class="invoice-card" id="invoiceCard">
+        <h3>Invoice Summary</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Total</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="invoiceBody"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">Subtotal</td>
+              <td colspan="2" id="subtotal">₹0</td>
+            </tr>
+            <tr>
+              <td colspan="3">GST (18%)</td>
+              <td colspan="2" id="gst">₹0</td>
+            </tr>
+            <tr class="total-row">
+              <td colspan="3"><strong>Total</strong></td>
+              <td colspan="2" id="total"><strong>₹0</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+        <button id="finishBtn">Finish Billing</button>
+      </section>
+    </main>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
