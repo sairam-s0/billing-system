@@ -7,21 +7,43 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="container">
+  <!-- Login Screen -->
+  <div id="loginScreen">
+    <div class="login-container">
+      <h2>🧾 BillingApp Login</h2>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required />
+        </div>
+        <button type="submit">Login</button>
+      </form>
+      <p id="loginMessage"></p>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div class="container" id="mainApp" style="display: none;">
     <!-- Sidebar -->
     <aside class="sidebar">
       <h2>🧾 BillingApp</h2>
-      <ul>
-        <li class="active" onclick="showPage('dashboard')">Dashboard</li>
-        <li onclick="showPage('billing')">Billing</li>
-        <li onclick="showPage('invoices')">Invoices</li>
+      <div class="user-info">
+        <p id="userWelcome"></p>
+        <button id="logoutBtn">Logout</button>
+      </div>
+      <ul id="sidebarNav">
+        <!-- Navigation will be populated based on user role -->
       </ul>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
 
-      <!-- 🧠 Dashboard -->
+      <!-- 🧠 Dashboard (Admin Only) -->
       <div id="dashboardSection">
         <h2>Dashboard Analytics</h2>
         <div class="dashboard-grid">
@@ -56,9 +78,15 @@
       </div>
 
       <!-- 💳 Billing Section -->
-      <div id="billingSection" style="display: none;">
+      <div id="billingSection">
         <header class="top-bar">
           <input type="text" id="searchBar" placeholder="Search product..." />
+          <div class="gst-controls">
+            <label>
+              <input type="checkbox" id="gstToggle" checked />
+              Include GST (18%)
+            </label>
+          </div>
         </header>
 
         <section class="product-section">
@@ -75,22 +103,21 @@
                 <th>Qty</th>
                 <th>Price</th>
                 <th>Total</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="invoiceBody"></tbody>
             <tfoot>
               <tr>
                 <td colspan="3">Subtotal</td>
-                <td colspan="2" id="subtotal">₹0</td>
+                <td id="subtotal">₹0</td>
               </tr>
-              <tr>
+              <tr id="gstRow">
                 <td colspan="3">GST (18%)</td>
-                <td colspan="2" id="gst">₹0</td>
+                <td id="gst">₹0</td>
               </tr>
               <tr class="total-row">
                 <td colspan="3"><strong>Total</strong></td>
-                <td colspan="2" id="total"><strong>₹0</strong></td>
+                <td id="total"><strong>₹0</strong></td>
               </tr>
             </tfoot>
           </table>
@@ -126,22 +153,109 @@
               <th>Customer</th>
               <th>Total</th>
               <th>Mode</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="pastInvoices"></tbody>
         </table>
       </div>
 
+      <!-- Stock Management (Admin Only) -->
+      <div id="stockSection" style="display: none;">
+        <h2>Stock Management</h2>
+        <div class="stock-controls">
+          <button id="addStockBtn">Add Stock</button>
+          <button id="lowStockBtn">View Low Stock</button>
+        </div>
+        <table id="stockTable">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Current Stock</th>
+              <th>Min Stock</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="stockTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Settings (Admin Only) -->
+      <div id="settingsSection" style="display: none;">
+        <h2>Settings</h2>
+        
+        <div class="settings-card">
+          <h3>User Management</h3>
+          <div class="form-group">
+            <label>Change Admin Password</label>
+            <input type="password" id="newAdminPassword" placeholder="New Admin Password" />
+            <button onclick="changePassword('admin')">Update Admin Password</button>
+          </div>
+          <div class="form-group">
+            <label>Change User Password</label>
+            <input type="password" id="newUserPassword" placeholder="New User Password" />
+            <button onclick="changePassword('user')">Update User Password</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>Import Products</h3>
+          <div class="file-upload">
+            <input type="file" id="productsFile" accept=".csv,.json" />
+            <button onclick="importProducts()">Import Products</button>
+          </div>
+          <p class="file-info">Upload CSV or JSON file with columns: name, price, stock (optional)</p>
+        </div>
+      </div>
+
       <!-- ✅ Summary after Billing -->
       <div id="billSummaryPage" style="display: none;">
         <h2>Invoice Summary</h2>
         <div id="summaryContent"></div>
-        <button onclick="window.print()">🖨️ Print</button>
-        <button onclick="showPage('billing')">🔙 Back to Billing</button>
+        <div class="no-print">
+          <button onclick="window.print()">🖨️ Print</button>
+          <button onclick="showPage('billing')">🔙 Back to Billing</button>
+        </div>
+      </div>
+
+      <!-- Edit Invoice Modal -->
+      <div id="editInvoiceModal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2>Edit Invoice</h2>
+          <div id="editInvoiceContent"></div>
+          <button onclick="saveInvoiceChanges()">Save Changes</button>
+          <button onclick="closeEditModal()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Stock Management Modal -->
+      <div id="stockModal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2>Manage Stock</h2>
+          <div id="stockModalContent">
+            <div class="form-group">
+              <label>Product</label>
+              <select id="stockProductSelect"></select>
+            </div>
+            <div class="form-group">
+              <label>Current Stock</label>
+              <input type="number" id="stockQuantity" min="0" />
+            </div>
+            <div class="form-group">
+              <label>Minimum Stock Level</label>
+              <input type="number" id="minStock" min="0" />
+            </div>
+            <button onclick="updateStock()">Update Stock</button>
+          </div>
+        </div>
       </div>
 
     </main>
   </div>
+
   <script src="main.js"></script>
 </body>
 </html>
