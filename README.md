@@ -5,7 +5,7 @@ A **complete web-based billing solution** built with **vanilla HTML, CSS, and Ja
 ---
 
 ## How To Use 
-- see my wiki page to see how to run on the local system
+- see my wiki page to see how to run on the [local system](https://github.com/sairam-s0/billing-system/wiki)
 
   
 ---
