@@ -78,7 +78,7 @@ A **complete web-based billing solution** built with **vanilla HTML, CSS, and Ja
 | Architecture | SPA (Single-Page App)  |
 
 ---
-#NOTE
+# NOTE
 
 ### Please leave a review or create a pull request if you can contribute 
 
