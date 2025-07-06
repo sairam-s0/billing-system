@@ -80,6 +80,6 @@ A **complete web-based billing solution** built with **vanilla HTML, CSS, and Ja
 ---
 #NOTE
 
-## Please leave a review or create a pull request if you can contribute 
+### Please leave a review or create a pull request if you can contribute 
 
 **this is for small businesses who cannot go with a fully fledged software application**
