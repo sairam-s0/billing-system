@@ -78,6 +78,8 @@ A **complete web-based billing solution** built with **vanilla HTML, CSS, and Ja
 | Architecture | SPA (Single-Page App)  |
 
 ---
+#NOTE
 
 ## Please leave a review or create a pull request if you can contribute 
-### this is for small businesses who cannot go with a fully fledged software application
+
+**this is for small businesses who cannot go with a fully fledged software application**
