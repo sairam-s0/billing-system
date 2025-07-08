@@ -101,14 +101,22 @@ function setupNavigation() {
 
 // ======= Data Management =======
 function saveData() {
-  // Using variables instead of localStorage for Claude.ai compatibility
-  // In a real environment, you would use localStorage here
+  localStorage.setItem('products', JSON.stringify(products));
+  localStorage.setItem('invoiceHistory', JSON.stringify(invoiceHistory));
+  localStorage.setItem('invoiceCounter', invoiceCounter);
 }
 
+
 function loadData() {
-  // In a real environment, you would load from localStorage here
-  // For now, we'll use the default data
+  const storedProducts = localStorage.getItem('products');
+  const storedInvoices = localStorage.getItem('invoiceHistory');
+  const storedCounter = localStorage.getItem('invoiceCounter');
+
+  if (storedProducts) products.splice(0, products.length, ...JSON.parse(storedProducts));
+  if (storedInvoices) invoiceHistory.splice(0, invoiceHistory.length, ...JSON.parse(storedInvoices));
+  if (storedCounter) invoiceCounter = parseInt(storedCounter);
 }
+
 
 // ======= GST Toggle =======
 document.getElementById('gstToggle').addEventListener('change', function(e) {
