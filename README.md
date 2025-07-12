@@ -81,7 +81,7 @@ A **complete web-based billing solution** built with **vanilla HTML, CSS, and Ja
 | Architecture | SPA (Single-Page App)  |
 
 ---
-###REQURIMENTS
+### REQURIMENTS
 
 -install rust
 
