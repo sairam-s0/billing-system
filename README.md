@@ -82,8 +82,10 @@ A **complete web-based billing solution** built with **vanilla HTML, CSS, and Ja
 
 ---
 ###REQURIMENTS
+
 -install rust
-install javascript
+
+-install javascript
 
 ---
 # NOTE
