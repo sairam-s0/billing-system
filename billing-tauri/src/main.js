@@ -23,6 +23,28 @@ let invoiceHistory = [];
 let invoiceCounter = 1001;
 let editingInvoiceId = null;
 
+// ======= Data Management (localStorage version) =======
+function saveData() {
+  const appData = {
+    products,
+    invoiceHistory,
+    invoiceCounter,
+    users
+  };
+  localStorage.setItem('billingAppData', JSON.stringify(appData));
+}
+
+function loadData() {
+  const savedData = localStorage.getItem('billingAppData');
+  if (savedData) {
+    const appData = JSON.parse(savedData);
+    if (appData.products) products.splice(0, products.length, ...appData.products);
+    if (appData.invoiceHistory) invoiceHistory.splice(0, invoiceHistory.length, ...appData.invoiceHistory);
+    if (appData.invoiceCounter) invoiceCounter = appData.invoiceCounter;
+    if (appData.users) Object.assign(users, appData.users);
+  }
+}
+
 // ======= Authentication =======
 document.getElementById('loginForm').addEventListener('submit', function(e) {
   e.preventDefault();
@@ -30,50 +52,50 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
   const username = document.getElementById('username').value;
   const password = document.getElementById('password').value;
   const messageEl = document.getElementById('loginMessage');
+
+  // Load data from localStorage before checking
+  loadData();
   
-  // Check credentials
   const user = Object.values(users).find(u => u.username === username && u.password === password);
   
   if (user) {
     currentUser = user;
     userRole = user.role;
     
-    // Hide login screen and show main app
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'flex';
     
-    // Update welcome message
     document.getElementById('userWelcome').textContent = `Welcome, ${user.username} (${user.role})`;
     
-    // Setup navigation based on role
     setupNavigation();
-    
-    // Load data and initialize
-    loadData();
     renderProducts();
     renderInvoice();
-    showPage('billing');
+    showPage(user.role === 'admin' ? 'dashboard' : 'billing');
     
     if (user.role === 'admin') {
       updateDashboard();
     }
-    
   } else {
     messageEl.textContent = 'Invalid username or password';
     messageEl.style.color = 'red';
   }
 });
 
+// Load data when the application first loads
+loadData();
+
+// ======= (The rest of your functions: Logout, Navigation, Billing, etc.) =======
+// The rest of the file can remain as it was in your original version.
+// For completeness, it is included below.
+
 // Logout functionality
 document.getElementById('logoutBtn').addEventListener('click', function() {
   currentUser = null;
   userRole = null;
   
-  // Clear form
   document.getElementById('loginForm').reset();
   document.getElementById('loginMessage').textContent = '';
   
-  // Show login screen
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('mainApp').style.display = 'none';
 });
@@ -98,25 +120,6 @@ function setupNavigation() {
     `;
   }
 }
-
-// ======= Data Management =======
-function saveData() {
-  localStorage.setItem('products', JSON.stringify(products));
-  localStorage.setItem('invoiceHistory', JSON.stringify(invoiceHistory));
-  localStorage.setItem('invoiceCounter', invoiceCounter);
-}
-
-
-function loadData() {
-  const storedProducts = localStorage.getItem('products');
-  const storedInvoices = localStorage.getItem('invoiceHistory');
-  const storedCounter = localStorage.getItem('invoiceCounter');
-
-  if (storedProducts) products.splice(0, products.length, ...JSON.parse(storedProducts));
-  if (storedInvoices) invoiceHistory.splice(0, invoiceHistory.length, ...JSON.parse(storedInvoices));
-  if (storedCounter) invoiceCounter = parseInt(storedCounter);
-}
-
 
 // ======= GST Toggle =======
 document.getElementById('gstToggle').addEventListener('change', function(e) {
@@ -334,7 +337,6 @@ document.getElementById("finishBtn").addEventListener("click", () => {
   invoiceHistory.push(invoiceData);
   saveData();
   
-  // Clear cart and form
   cart = {};
   renderInvoice();
   renderProducts();
@@ -424,7 +426,6 @@ function showPage(page) {
   if (page === "dashboard" && userRole === 'admin') {
     document.getElementById("dashboardSection").style.display = "block";
     document.querySelector("#sidebarNav li:nth-child(1)").classList.add("active");
-    updateDashboard();
   } else if (page === "billing") {
     document.getElementById("billingSection").style.display = "block";
     const targetLi = userRole === 'admin' ? 
@@ -464,7 +465,7 @@ function renderInvoiceList(filter = "") {
         <td>${inv.total}</td>
         <td>${inv.mode}</td>
         <td>
-          ${userRole === 'admin' || userRole === 'user' ? `<button onclick="editInvoice('${inv.id}')">Edit</button>` : ''}
+          <button onclick="editInvoice('${inv.id}')">Edit</button>
         </td>
       `;
       tbody.appendChild(row);
@@ -517,12 +518,10 @@ function saveInvoiceChanges() {
   const invoice = invoiceHistory.find(inv => inv.id === editingInvoiceId);
   if (!invoice) return;
   
-  // Update customer details
   invoice.customer = document.getElementById("editCustomerName").value || "N/A";
   invoice.phone = document.getElementById("editCustomerPhone").value || "N/A";
   invoice.mode = document.getElementById("editPaymentMode").value;
   
-  // Update quantities
   invoice.items.forEach((item, index) => {
     const newQty = parseInt(document.getElementById(`editQty_${index}`).value);
     if (newQty > 0) {
@@ -530,7 +529,6 @@ function saveInvoiceChanges() {
     }
   });
   
-  // Recalculate totals
   const subtotal = invoice.items.reduce((sum, item) => sum + (item.price * item.qty), 0);
   const gst = invoice.gstEnabled ? Math.round(subtotal * 0.18) : 0;
   const total = subtotal + gst;
@@ -580,7 +578,6 @@ function openStockModal(productId = null) {
   const modal = document.getElementById("stockModal");
   const select = document.getElementById("stockProductSelect");
   
-  // Populate product select
   select.innerHTML = products.map(p => 
     `<option value="${p.id}" ${p.id === productId ? 'selected' : ''}>${p.name}</option>`
   ).join('');
@@ -589,6 +586,9 @@ function openStockModal(productId = null) {
     const product = products.find(p => p.id === productId);
     document.getElementById("stockQuantity").value = product.stock;
     document.getElementById("minStock").value = product.minStock;
+  } else {
+    document.getElementById("stockQuantity").value = '';
+    document.getElementById("minStock").value = '';
   }
   
   modal.style.display = "flex";
@@ -651,7 +651,6 @@ function importProducts() {
       if (file.type === "application/json") {
         importedProducts = JSON.parse(e.target.result);
       } else if (file.type === "text/csv") {
-        // Simple CSV parsing
         const lines = e.target.result.split('\n');
         const headers = lines[0].split(',').map(h => h.trim());
         
@@ -667,11 +666,10 @@ function importProducts() {
         }
       }
       
-      // Add products to the system
       let addedCount = 0;
       importedProducts.forEach(item => {
         if (item.name && item.price) {
-          const newId = Math.max(...products.map(p => p.id)) + 1;
+          const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
           products.push({
             id: newId,
             name: item.name,
@@ -703,18 +701,16 @@ function importProducts() {
 function updateDashboard() {
   if (userRole !== 'admin') return;
   
-  // Calculate yesterday's sales
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = yesterday.toDateString();
   
   const yesterdaySales = invoiceHistory
     .filter(inv => new Date(inv.timestamp).toDateString() === yesterdayStr)
-    .reduce((sum, inv) => sum + parseInt(inv.total.replace('₹', '')), 0);
+    .reduce((sum, inv) => sum + parseInt(inv.total.replace('₹', '') || 0), 0);
   
   document.getElementById("yesterdaySales").textContent = `₹${yesterdaySales}`;
   
-  // Find top product
   const productSales = {};
   invoiceHistory.forEach(inv => {
     inv.items.forEach(item => {
@@ -722,25 +718,22 @@ function updateDashboard() {
     });
   });
   
-  const topProduct = Object.keys(productSales).reduce((a, b) => 
-    productSales[a] > productSales[b] ? a : b, '-'
-  );
+  const topProduct = Object.keys(productSales).length > 0 ? Object.keys(productSales).reduce((a, b) => 
+    productSales[a] > productSales[b] ? a : b
+  ) : '-';
   
   document.getElementById("topProduct").textContent = topProduct;
   
-  // Calculate total profit
   const totalProfit = invoiceHistory.reduce((sum, inv) => sum + (inv.profit || 0), 0);
   document.getElementById("profitAmount").textContent = `₹${totalProfit}`;
   
-  // Update profit circle
-  const maxProfit = 10000; // Arbitrary max for visualization
+  const maxProfit = 10000;
   const profitPercentage = Math.min(totalProfit / maxProfit * 100, 100);
   const circumference = 2 * Math.PI * 45;
   const offset = circumference - (profitPercentage / 100) * circumference;
   
   document.getElementById("profitCircle").style.strokeDashoffset = offset;
   
-  // Update top products list
   const topProductsList = document.getElementById("topProductsList");
   topProductsList.innerHTML = Object.entries(productSales)
     .sort(([,a], [,b]) => b - a)
@@ -748,14 +741,12 @@ function updateDashboard() {
     .map(([name, qty]) => `<li>${name}: ${qty} sold</li>`)
     .join('');
   
-  // Update sales chart
   updateSalesChart();
 }
 
 function updateSalesChart() {
   const ctx = document.getElementById('salesChart').getContext('2d');
   
-  // Generate last 7 days data
   const last7Days = [];
   const salesData = [];
   
@@ -768,12 +759,11 @@ function updateSalesChart() {
     
     const daySales = invoiceHistory
       .filter(inv => new Date(inv.timestamp).toDateString() === dateStr)
-      .reduce((sum, inv) => sum + parseInt(inv.total.replace('₹', '')), 0);
+      .reduce((sum, inv) => sum + parseInt(inv.total.replace('₹', '') || 0), 0);
     
     salesData.push(daySales);
   }
   
-  // Clear existing chart
   if (window.salesChart) {
     window.salesChart.destroy();
   }
@@ -826,9 +816,36 @@ document.getElementById('lowStockBtn').addEventListener('click', function() {
   
   alert(message);
 });
+// ======= Dark Mode Toggle Logic =======
+const themeToggle = document.getElementById('themeToggle');
+
+// Function to apply the saved theme on startup
+function applyTheme() {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.body.classList.add('dark-mode');
+    themeToggle.checked = true;
+  } else {
+    document.body.classList.remove('dark-mode');
+    themeToggle.checked = false;
+  }
+}
+
+// Event listener for the toggle switch
+themeToggle.addEventListener('change', () => {
+  if (themeToggle.checked) {
+    document.body.classList.add('dark-mode');
+    localStorage.setItem('theme', 'dark');
+  } else {
+    document.body.classList.remove('dark-mode');
+    localStorage.setItem('theme', 'light');
+  }
+});
+
+// Apply the theme when the app loads
+applyTheme();
 
 // ======= Initialize App =======
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize GST toggle
   document.getElementById('gstRow').style.display = gstEnabled ? 'table-row' : 'none';
 });

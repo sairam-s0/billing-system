@@ -751,3 +751,56 @@ canvas#salesChart {
 .text-warning {
   color: #f59e0b;
 }
+/* Dark Mode Styles */
+body.dark-mode {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+body.dark-mode .sidebar {
+  background-color: #2c3e50;
+}
+
+body.dark-mode .sidebar li.active,
+body.dark-mode .sidebar li:hover {
+  background-color: #34495e;
+}
+
+body.dark-mode .product-card,
+body.dark-mode .invoice-card,
+body.dark-mode .card,
+body.dark-mode .settings-card,
+body.dark-mode #topProductsList,
+body.dark-mode canvas#salesChart,
+body.dark-mode table,
+body.dark-mode .modal-content {
+  background: #1a202c;
+  border-color: #4a5568;
+}
+
+body.dark-mode #searchBar,
+body.dark-mode .gst-controls,
+body.dark-mode .customer-details input,
+body.dark-mode .payment-section select,
+body.dark-mode .payment-section input,
+body.dark-mode #invoiceSearch,
+body.dark-mode .price-input {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-color: #4a5568;
+}
+
+body.dark-mode table th {
+  background: #2d3748;
+}
+
+body.dark-mode table tr:hover {
+  background: #2d3748;
+}
+
+/* Simple toggle switch style */
+#themeToggle {
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+}
