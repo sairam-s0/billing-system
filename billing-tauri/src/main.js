@@ -841,6 +841,64 @@ themeToggle.addEventListener('change', () => {
     localStorage.setItem('theme', 'light');
   }
 });
+// ======= Export Invoices to CSV =======
+function exportInvoicesToCSV() {
+  if (invoiceHistory.length === 0) {
+    alert("No invoices to export!");
+    return;
+  }
+
+  // 1. Define CSV headers
+  const headers = [
+    "Invoice ID",
+    "Date",
+    "Customer Name",
+    "Customer Phone",
+    "Subtotal (₹)",
+    "GST (₹)",
+    "Total (₹)",
+    "Payment Mode"
+  ];
+
+  // 2. Convert invoice data to CSV rows
+  const rows = invoiceHistory.map(inv => {
+    // Remove the '₹' symbol and ensure values are clean
+    const subtotal = inv.subtotal.replace('₹', '');
+    const gst = inv.gst.replace('₹', '');
+    const total = inv.total.replace('₹', '');
+
+    return [
+      inv.id,
+      inv.date,
+      `"${inv.customer}"`, // Wrap in quotes to handle commas
+      `"${inv.phone}"`,
+      subtotal,
+      gst,
+      total,
+      inv.mode
+    ].join(',');
+  });
+
+  // 3. Combine headers and rows
+  const csvContent = [headers.join(','), ...rows].join('\n');
+
+  // 4. Create a blob and trigger download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+
+  const today = new Date().toISOString().slice(0, 10);
+  link.setAttribute("download", `invoices-export-${today}.csv`);
+  link.style.visibility = 'hidden';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// Connect the new button to the function
+document.getElementById('exportCsvBtn').addEventListener('click', exportInvoicesToCSV);
 
 // Apply the theme when the app loads
 applyTheme();
